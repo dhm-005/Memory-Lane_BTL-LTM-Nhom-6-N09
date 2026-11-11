@@ -1,0 +1,45 @@
+# Compiled Java files
+*.class
+
+# Maven build output
+target/
+
+# NetBeans
+nbproject/private/
+nbactions.xml
+nb-configuration.xml
+build/
+dist/
+.nb-gradle/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
