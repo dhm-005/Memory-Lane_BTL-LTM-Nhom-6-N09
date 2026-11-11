@@ -1,9 +1,8 @@
-package com.mcserver.model;
+package com.mcserver.model.game;
 
 import java.time.LocalDateTime;
 
 import com.mcserver.model.entity.User;
-import com.mcserver.model.game.GameType;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -35,9 +34,6 @@ public class GameMatch {
 
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
-
-    private int totalScore;
-    private int rank;
     
     @ManyToOne
     @JoinColumn(name = "winner_id", referencedColumnName = "id")

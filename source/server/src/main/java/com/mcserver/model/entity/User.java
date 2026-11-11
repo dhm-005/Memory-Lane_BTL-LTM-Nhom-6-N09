@@ -34,6 +34,9 @@ public class User {
     
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
+
+    private int totalScore;
+    private int playerRank;
     
     public enum Role {PLAYER, ADMIN}
     private Role role;

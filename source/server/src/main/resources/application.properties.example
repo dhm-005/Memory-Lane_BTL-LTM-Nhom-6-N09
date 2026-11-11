@@ -1,7 +1,15 @@
 # Database
-db.url=jdbc:mysql://localhost:3306/card_game
+db.url=jdbc:mysql://localhost:3306/memory_lane
 db.username=root
 db.password=your_password
+
+# Spring Boot / JPA
+spring.datasource.url=${DB_URL:${db.url}}
+spring.datasource.username=${DB_USERNAME:${db.username}}
+spring.datasource.password=${DB_PASSWORD:${db.password}}
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.open-in-view=false
+spring.main.web-application-type=none
 
 # TCP Server
 server.host=0.0.0.0
