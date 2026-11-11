@@ -1,0 +1,8 @@
+# Database
+db.url=jdbc:mysql://localhost:3306/card_game
+db.username=root
+db.password=your_password
+
+# TCP Server
+server.host=0.0.0.0
+server.port=5000

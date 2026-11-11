@@ -1,2 +1,3 @@
 /source/server/target/
 /source/client/target/
+source/server/src/main/resources/application.properties
