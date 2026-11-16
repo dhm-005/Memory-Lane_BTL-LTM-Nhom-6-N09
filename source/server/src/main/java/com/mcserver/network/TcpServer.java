@@ -18,6 +18,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mcserver.service.room.RoomService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class TcpServer implements SmartLifecycle {
-    private final TcpRequestHandler requestHandler;
+   // private final TcpRequestHandler requestHandler;
+    private final MessageDispatcher dispatcher;
+    private final SessionRegistry sessionRegistry;
+    private final RoomService roomService;
+
     private final ObjectMapper objectMapper;
 
     @Value("${server.host:0.0.0.0}")
@@ -81,21 +86,23 @@ public class TcpServer implements SmartLifecycle {
     }
 
     private void handleClient(Socket client) {
+        ClientSession session = null;
         try (client;
-                BufferedReader input = new BufferedReader(
-                        new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
-                BufferedWriter output = new BufferedWriter(
-                        new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8))) {
+                BufferedReader input = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
+                BufferedWriter output = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8))) {
+            session = new ClientSession(output, objectMapper);
+            sessionRegistry.add(session);
             String line;
             while ((line = input.readLine()) != null) {
-                TcpResponse response = requestHandler.handle(line);
-                output.write(objectMapper.writeValueAsString(response));
-                output.newLine();
-                output.flush();
+                session.send(dispatcher.dispatch(line, session));
             }
         } catch (IOException e) {
-            if (running) {
-                log.warn("TCP client connection ended with an I/O error: {}", e.getMessage());
+            if (running) log.warn("TCP client connection ended with an I/O error: {}", e.getMessage());
+        } finally {
+            if (session != null) {
+                sessionRegistry.remove(session);
+                Long uid = session.getUserId();
+                if (uid != null) roomService.handleDisconnect(uid);   // đóng cửa sổ = rời phòng
             }
         }
     }

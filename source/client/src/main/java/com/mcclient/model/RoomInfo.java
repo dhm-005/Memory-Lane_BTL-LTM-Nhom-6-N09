@@ -1,6 +1,8 @@
 package com.mcclient.model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RoomInfo {
 
@@ -9,6 +11,9 @@ public class RoomInfo {
     private String status;
     private LocalDateTime createdAt;
     private int playerCount;
+    private String hostName;
+    private int maxPlayers = 2;
+    private List<RoomPlayer> players = new ArrayList<>();
 
     public RoomInfo() {
     }
@@ -59,5 +64,33 @@ public class RoomInfo {
 
     public void setPlayerCount(int playerCount) {
         this.playerCount = playerCount;
+    }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
+    }
+
+    public List<RoomPlayer> getPlayers() {
+        return players;
+    }
+
+    public void setPlayers(List<RoomPlayer> players) {
+        this.players = players;
+    }
+
+    public boolean hasPlayer(long userId) {
+        return players.stream().anyMatch(p -> p.getUserId() == userId);
     }
 }
