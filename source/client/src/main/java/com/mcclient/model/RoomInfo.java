@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public class RoomInfo {
 
-    private long id;
+    private String id;
     private long hostId;
     private String status;
     private LocalDateTime createdAt;
@@ -13,7 +13,7 @@ public class RoomInfo {
     public RoomInfo() {
     }
 
-    public RoomInfo(long id, long hostId, String status, LocalDateTime createdAt, int playerCount) {
+    public RoomInfo(String id, long hostId, String status, LocalDateTime createdAt, int playerCount) {
         this.id = id;
         this.hostId = hostId;
         this.status = status;
@@ -21,11 +21,11 @@ public class RoomInfo {
         this.playerCount = playerCount;
     }
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
