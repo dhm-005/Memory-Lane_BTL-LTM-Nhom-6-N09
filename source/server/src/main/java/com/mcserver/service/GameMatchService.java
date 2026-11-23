@@ -20,7 +20,7 @@ import com.mcserver.model.ramOnly.Room;
 import com.mcserver.model.User;
 import com.mcserver.network.ClientSession;
 import com.mcserver.network.SessionRegistry;
-import com.mcserver.repository.CardRepository;
+import com.mcserver.repository.ActionCardRepository;
 import com.mcserver.repository.UserRepository;
 import com.mcserver.util.JsonTemplates;
 
@@ -105,7 +105,7 @@ public final class GameMatchService {
             return false;
         }
 
-        ActionCard card = CardRepository.findAll().get(cardId);
+        ActionCard card = ActionCardRepository.findAll().get(cardId);
         if (card == null) {
             return false;
         }

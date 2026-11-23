@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mcserver.model.ActionCard;
 import com.mcserver.model.GameMatch;
 import com.mcserver.network.ClientSession;
-import com.mcserver.repository.CardRepository;
+import com.mcserver.repository.ActionCardRepository;
 import com.mcserver.repository.GameMatchRepository;
 import com.mcserver.repository.SoloRecordRepository;
 import com.mcserver.repository.UserRepository;
@@ -100,7 +100,7 @@ public final class HistoryService {
 
     public static ObjectNode getCardCollection(String requestId) {
         try {
-            List<ActionCard> cards = List.copyOf(CardRepository.findAll().values());
+            List<ActionCard> cards = List.copyOf(ActionCardRepository.findAll().values());
             return JsonTemplates.actionCardsResponse(requestId, cards);
         } catch (SQLException e) {
             return JsonTemplates.error("LIST_ACTION_CARDS", requestId, "DB_ERROR", "Không tải được danh sách thẻ: " + e.getMessage());

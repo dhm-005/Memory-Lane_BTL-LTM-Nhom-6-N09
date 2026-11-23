@@ -1,6 +1,5 @@
 package com.mcserver.model;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;

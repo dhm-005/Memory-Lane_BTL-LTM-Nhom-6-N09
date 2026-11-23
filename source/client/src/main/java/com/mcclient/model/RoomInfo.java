@@ -93,4 +93,6 @@ public class RoomInfo {
     public boolean hasPlayer(long userId) {
         return players.stream().anyMatch(p -> p.getUserId() == userId);
     }
+    
+    
 }

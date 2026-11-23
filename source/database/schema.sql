@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS game_types (
 -- 3. Bảng danh mục thẻ chức năng (mua trước mỗi ván bằng coins)
 CREATE TABLE IF NOT EXISTS action_cards (
     id BIGINT NOT NULL AUTO_INCREMENT,
+    code VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL,
     name VARCHAR(150) NOT NULL,
     description TEXT NULL,
@@ -113,7 +114,7 @@ CREATE TABLE IF NOT EXISTS match_moves (
     card2_x INT NOT NULL,
     card2_y INT NOT NULL,
     card2_pair_id BIGINT NOT NULL,
-    is_match TINYINT(1) NOT NULL,
+    is_match BOOLEAN NOT NULL,
     moved_at DATETIME(6) NOT NULL,
     streak_count INT NOT NULL DEFAULT 0,
 
