@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActionCard {
-    public Long id;
-    public String category;
-    public String name;
-    public String description;    
-    public int price;
-    
+    private Long id;
+    private String code;
+    private String category;
+    private String name;
+    private String description;    
+    private int price;
 }
 

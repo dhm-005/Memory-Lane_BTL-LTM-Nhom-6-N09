@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GameMatch {
-
     private Long id;
     private String joinCode;
     private GameType gameType;
