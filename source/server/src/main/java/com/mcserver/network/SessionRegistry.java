@@ -1,19 +1,36 @@
 package com.mcserver.network;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@Component
 public class SessionRegistry {
     private final Set<ClientSession> sessions = ConcurrentHashMap.newKeySet();
+    private final Map<Long, ClientSession> authenticatedSessions = new ConcurrentHashMap<>();
 
-    public void add(ClientSession s) { sessions.add(s); }
+    public void add(ClientSession s) {
+        sessions.add(s);
+    }
 
-    public void remove(ClientSession s) { sessions.remove(s); }
+    public void registerUser(long userId, ClientSession s) {
+        authenticatedSessions.put(userId, s);
+    }
 
-    public void broadcastToLobby(Object message) {
+    public void remove(ClientSession s) {
+        sessions.remove(s);
+        if (s.getUserId() != null) {
+            authenticatedSessions.remove(s.getUserId(), s);
+        }
+    }
+
+    public boolean sendToUser(long userId, ObjectNode message) {
+        ClientSession s = authenticatedSessions.get(userId);
+        return s != null && s.send(message);
+    }
+
+    public void broadcastToLobby(ObjectNode message) {
         for (ClientSession s : sessions) {
             if (s.isLobbySubscribed()) {
                 s.send(message);

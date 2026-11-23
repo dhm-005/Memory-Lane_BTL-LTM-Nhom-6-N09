@@ -1,66 +1,64 @@
 package com.mcserver.network;
 
+import java.util.List;
 import java.util.Set;
 
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.JsonNode;
-import com.mcserver.dto.response.RoomUpdateEvent;
-import com.mcserver.service.room.RoomException;
-import com.mcserver.service.room.RoomService;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mcserver.model.ramOnly.Room;
+import com.mcserver.service.RoomService;
+import com.mcserver.util.JsonTemplates;
+import com.mcserver.util.JsonUtils;
 
 import lombok.RequiredArgsConstructor;
 
-@Component
+
 @RequiredArgsConstructor
 public class RoomMessageHandler implements TypeHandler {
     private final RoomService roomService;
+    private final SessionRegistry sessionRegistry;
 
+    
     @Override
     public Set<String> supportedTypes() {
         return Set.of("LIST_ROOMS", "CREATE_ROOM", "JOIN_ROOM", "LEAVE_ROOM");
     }
 
     @Override
-    public Message handle(String type, String requestId, JsonNode data, ClientSession session) {
+    public ObjectNode handle(String type, String requestId, JsonNode data, ClientSession session) {
         try {
-            identify(data, session);
-            session.setLobbySubscribed(true); // đăng ký TRƯỚC khi tạo/vào để chính mình cũng nhận sự kiện đẩy
+            if (!session.isAuthenticated()) {
+                return JsonTemplates.error("ROOM_ERROR", requestId, "UNAUTHENTICATED", "Bạn cần đăng nhập trước");
+            }
+            session.setLobbySubscribed(true);
             long userId = session.getUserId();
             String username = session.getUsername();
-            RoomUpdateEvent event = switch (type) {
-                case "LIST_ROOMS" -> roomService.listRooms();
-                case "CREATE_ROOM" -> roomService.createRoom(userId, username);
-                case "JOIN_ROOM" -> roomService.joinRoom(requiredText(data, "roomId"), userId, username);
-                default -> roomService.leaveRoom(userId); // LEAVE_ROOM
+
+            return switch (type) {
+                case "LIST_ROOMS" -> JsonTemplates.roomListResponse(requestId, roomService.listRooms());
+                case "CREATE_ROOM" -> {
+                    Room created = roomService.createRoom(userId, username);
+                    sessionRegistry.broadcastToLobby(JsonTemplates.roomsChangedPush(roomService.listRooms()));
+                    yield JsonTemplates.roomResponse(type, requestId, created);
+                }
+                case "JOIN_ROOM" -> {
+                    String roomId = JsonUtils.getString(data, "roomId");
+                    if (roomId.isBlank()) {
+                        throw new IllegalArgumentException("Field 'roomId' must be a non-empty string");
+                    }
+                    Room joined = roomService.joinRoom(roomId, userId, username);
+                    sessionRegistry.broadcastToLobby(JsonTemplates.roomsChangedPush(roomService.listRooms()));
+                    yield JsonTemplates.roomResponse(type, requestId, joined);
+                }
+                default -> { // LEAVE_ROOM
+                    roomService.leaveRoom(userId);
+                    List<Room> rooms = roomService.listRooms();
+                    sessionRegistry.broadcastToLobby(JsonTemplates.roomsChangedPush(rooms));
+                    yield JsonTemplates.ok(type, requestId, rooms);
+                }
             };
-            return Message.ok("ROOM_UPDATE", requestId, event);
-        } catch (RoomException e) {
-            return Message.error("ROOM_ERROR", requestId, e.getCode(), e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return JsonTemplates.error("ROOM_ERROR", requestId, "INVALID_ROOM_ACTION", e.getMessage());
         }
-    }
-
-    /**
-     * DEV ONLY: chưa có login nên tin userId/username từ client.
-     * XÓA hàm này khi Người 1 gọi session.authenticate(...) lúc đăng nhập thành công.
-     */
-    private void identify(JsonNode data, ClientSession s) {
-        if (s.isAuthenticated()) {
-            return;
-        }
-        JsonNode id = data.get("userId");
-        JsonNode name = data.get("username");
-        if (id == null || !id.isIntegralNumber() || name == null || !name.isTextual() || name.asText().isBlank()) {
-            throw new RoomException("UNAUTHENTICATED", "Bạn cần đăng nhập trước");
-        }
-        s.authenticate(id.longValue(), name.asText().trim());
-    }
-
-    private String requiredText(JsonNode data, String field) {
-        JsonNode v = data.get(field);
-        if (v == null || !v.isTextual() || v.asText().isBlank()) {
-            throw new IllegalArgumentException("Field '" + field + "' must be a non-empty string");
-        }
-        return v.asText();
     }
 }

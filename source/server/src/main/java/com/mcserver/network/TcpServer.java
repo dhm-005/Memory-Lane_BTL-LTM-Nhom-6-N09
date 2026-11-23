@@ -13,39 +13,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.SmartLifecycle;
-import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mcserver.service.room.RoomService;
+import com.mcserver.service.RoomService;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
-@Component
 @RequiredArgsConstructor
-@Slf4j
-public class TcpServer implements SmartLifecycle {
-   // private final TcpRequestHandler requestHandler;
+public class TcpServer {
+    private final String host;
+    private final int port;
     private final MessageDispatcher dispatcher;
     private final SessionRegistry sessionRegistry;
     private final RoomService roomService;
-
-    private final ObjectMapper objectMapper;
-
-    @Value("${server.host:0.0.0.0}")
-    private String host;
-
-    @Value("${server.port:5000}")
-    private int port;
 
     private volatile boolean running;
     private ServerSocket serverSocket;
     private ExecutorService clientExecutor;
     private Thread acceptThread;
+    
 
-    @Override
     public synchronized void start() {
         if (running) {
             return;
@@ -61,7 +46,7 @@ public class TcpServer implements SmartLifecycle {
             acceptThread = Thread.ofPlatform()
                     .name("tcp-server-accept")
                     .start(this::acceptConnections);
-            log.info("TCP server listening on {}:{}", host, socket.getLocalPort());
+            System.out.printf("TCP server listening on {%s}:{%s}\n",host,socket.getLocalPort());
         } catch (IOException e) {
             throw new IllegalStateException("Could not start TCP server on " + host + ":" + port, e);
         }
@@ -74,12 +59,12 @@ public class TcpServer implements SmartLifecycle {
                 clientExecutor.submit(() -> handleClient(client));
             } catch (SocketException e) {
                 if (running) {
-                    log.error("TCP server socket failed", e);
+                    System.err.println("TCP server socket failed. " + e);
                 }
                 return;
             } catch (IOException e) {
                 if (running) {
-                    log.error("Could not accept TCP client", e);
+                    System.err.println("Could not accept TCP client. "+ e);
                 }
             }
         }
@@ -90,31 +75,35 @@ public class TcpServer implements SmartLifecycle {
         try (client;
                 BufferedReader input = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                 BufferedWriter output = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), StandardCharsets.UTF_8))) {
-            session = new ClientSession(output, objectMapper);
+            session = new ClientSession(output);
             sessionRegistry.add(session);
             String line;
             while ((line = input.readLine()) != null) {
                 session.send(dispatcher.dispatch(line, session));
             }
         } catch (IOException e) {
-            if (running) log.warn("TCP client connection ended with an I/O error: {}", e.getMessage());
+            if (running) {
+                System.err.println("Client I/O error: " + e.getMessage());
+                e.printStackTrace();
+            }
         } finally {
             if (session != null) {
                 sessionRegistry.remove(session);
                 Long uid = session.getUserId();
-                if (uid != null) roomService.handleDisconnect(uid);   // đóng cửa sổ = rời phòng
+                if (uid != null) {
+                    roomService.handleDisconnect(uid); // Đóng cửa sổ = tự rời phòng
+                }
             }
         }
     }
 
-    @Override
     public synchronized void stop() {
         running = false;
         if (serverSocket != null) {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                log.warn("Could not close TCP server socket", e);
+                System.out.println("Could not close TCP server socket: "+ e);
             }
         }
         if (clientExecutor != null) {
@@ -123,26 +112,5 @@ public class TcpServer implements SmartLifecycle {
         if (acceptThread != null) {
             acceptThread.interrupt();
         }
-    }
-
-    @Override
-    public void stop(Runnable callback) {
-        stop();
-        callback.run();
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
-    }
-
-    @Override
-    public boolean isAutoStartup() {
-        return true;
-    }
-
-    @Override
-    public int getPhase() {
-        return Integer.MAX_VALUE;
     }
 }
