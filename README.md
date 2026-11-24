@@ -9,7 +9,7 @@
 | STT | Họ và Tên | MSSV | Email | Đóng góp |
 |-----|-----------|------|-------|----------|
 | 1 | Đào Hà My | B23DCCN571 | daohamyvn2005@gmail.com | ... |
-| 2 | Cao Thị Thanh Nhàn | B23DCCN618 | b@example.com | ... |
+| 2 | Cao Thị Thanh Nhàn | B23DCCN618 | nhan1152005@gmail.com | ... |
 | 3 | Đặng Thanh Thúy | B23DCCN807 | c@example.com | ... |
 | 4 | Nguyễn Đức Minh | B23DCCN555 | d@example.com | ... |
 
@@ -73,6 +73,7 @@ cd Memory-Lane_BTL-LTM-Nhom-6-N09
 ### 3. Chạy Server
 **Cách 1 – Chạy nhanh bằng script (Windows):**
 ```bat
+cd source/server
 run-server.bat
 ```
 
@@ -85,6 +86,7 @@ mvn compile exec:java -Dexec.mainClass=com.cardgame.server.MainServer
 ### 4. Chạy Client
 **Cách 1 – Chạy nhanh bằng script (Windows, kết nối mặc định `127.0.0.1:5000`):**
 ```bat
+cd source/client
 run-client.bat
 ```
 
@@ -136,14 +138,13 @@ Client và Server giao tiếp qua **TCP Socket**, mỗi thông điệp là một
 Memory-Lane_BTL-LTM-Nhom-6-N09/
 ├── README.md
 ├── INSTRUCTION.md
-├── run-client.bat       # File chạy client nhanh
-├── run-server.bat       # File chạy server nhanh
 ├── statics/
 │   ├── diagram.png
 │   └── dataset_sample.csv
 └── source/
     ├── .gitignore
     ├── client/
+    │   ├── run-client.bat         # File chạy client nhanh
     │   ├── pom.xml
     │   └── src/main/java/com/cardgame/client/
     │       ├── MainClient.java
@@ -155,6 +156,7 @@ Memory-Lane_BTL-LTM-Nhom-6-N09/
     ├── server/
     │   ├── pom.xml
     │   └── src/
+    |       ├── run-server.bat         # File chạy server nhanh
     │       ├── main/
     │       │   ├── java/com/cardgame/server/
     │       │   │   ├── MainServer.java
