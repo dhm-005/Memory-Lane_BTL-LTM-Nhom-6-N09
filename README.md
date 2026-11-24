@@ -58,7 +58,7 @@ Client (Java Swing)  <--- TCP Socket (JSON) --->  Server (Java Multithreading)  
 - Đảm bảo máy đã cài đặt **JDK 17+**, **Apache Maven** và **MySQL Server** (`java -version`, `mvn -version`).
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/dhm-005/Memory-Lane_BTL-LTM-Nhom-6-N09
 cd Memory-Lane_BTL-LTM-Nhom-6-N09
 ```
 
@@ -66,16 +66,9 @@ cd Memory-Lane_BTL-LTM-Nhom-6-N09
 1. Mở MySQL Workbench (hoặc công cụ quản lý MySQL) và chạy toàn bộ script tạo bảng và dữ liệu mẫu tại:
    ```text
    database/schema.sql
+   database/insert.sql
    ```
-   *(Script sẽ tạo database `card_memory_game` cùng các bảng dữ liệu cần thiết).*
-2. Sao chép file cấu hình mẫu `server/src/main/resources/db.properties.example` thành `server/src/main/resources/db.properties` và cập nhật thông tin kết nối:
-   ```properties
-   db.url=jdbc:mysql://localhost:3306/card_memory_game?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
-   db.username=root
-   db.password=YOUR_MYSQL_PASSWORD
-   server.port=5000
-   ```
-   *(Server cũng hỗ trợ ghi đè cấu hình thông qua các biến môi trường `CARDGAME_DB_URL`, `CARDGAME_DB_USER`, `CARDGAME_DB_PASSWORD`).*
+2. Sao chép file cấu hình mẫu `server/src/main/resources/db.properties.example` thành `server/src/main/resources/db.properties` và cập nhật thông tin kết nối
 
 ### 3. Chạy Server
 **Cách 1 – Chạy nhanh bằng script (Windows):**
