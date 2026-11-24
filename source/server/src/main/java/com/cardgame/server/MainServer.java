@@ -7,7 +7,6 @@ import com.cardgame.server.service.CardService;
 import com.cardgame.server.repository.UserRepository;
 import com.cardgame.server.util.Json;
 import java.sql.Connection;
-import java.sql.SQLException;
 /** Application entry point and small compatibility facade for shared server utilities. */
 public class MainServer {
     public static int port = 5000;
