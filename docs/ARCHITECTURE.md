@@ -1,35 +1,105 @@
-# Architecture notes
+# Kiến trúc hệ thống Memory Duel
 
-## Build boundaries
+## 1. Tổng quan
 
-`client/` and `server/` are independent Java 17 Maven projects. The only integration contract is the newline-delimited JSON protocol documented in `PROTOCOL.md`; no third shared Maven module is introduced.
+Memory Duel là game tìm các cặp thẻ giống nhau, được xây dựng theo mô hình Client–Server. Người chơi sử dụng ứng dụng Client để đăng nhập, tham gia phòng, chơi game và xem các thông tin cá nhân. Server tiếp nhận yêu cầu từ Client, xử lý logic game và lưu trữ dữ liệu cần thiết vào database.
 
-## Server
+Hệ thống được chia thành hai chương trình chính là Client và Server. Hai chương trình hoạt động độc lập và trao đổi dữ liệu thông qua kết nối TCP với giao thức JSON.
 
-- `MainServer` is the startup entry point and exposes only small compatibility helpers/constants.
-- `DatabaseConfig` owns JDBC connection creation. Repositories no longer obtain connections through `MainServer`.
-- `UserRepository` owns account, balance and ranking-point SQL.
-- `CardService` owns the ordered card catalogue, the existing 12-card database override/fallback rule, card serialization and collection response.
-- `OnlineUsers` and `RoomRegistry` own the in-memory registries.
-- `RoomService` owns room discovery/creation/joining and exposes room lifecycle entry points.
-- `GameService` routes PvP commands and owns the original four-thread scheduler.
-- `SoloService` owns Solo progression validation, records, rewards and Solo leaderboard responses.
-- `HistoryService` owns PvP history and leaderboard responses.
-- `GameRepository` owns game-result persistence as well as history/ranking queries.
-- `Room` remains the synchronization monitor and owns waiting-room, pre-match purchase and room lifecycle state. Its active board/turn state is held by `Match`; `Match` also contains pure turn-choice and random-pair helpers. All changes to a match must continue to synchronize on its owning `Room`.
+## 2. Cấu trúc hệ thống
 
-## Client
+Project được tổ chức thành các thành phần chính:
 
-- `Session` groups account and room state previously held as unrelated `MainFrame` fields.
-- `UiTheme` owns shared colors and the symbol catalogue, removing component-to-frame palette dependencies.
-- `DataPagePanel` directly builds history, leaderboard and collection pages; the three wrapper classes were removed.
-- `PvPGamePanel` registers the log area directly with `MainFrame`; log writes no longer traverse the whole component tree.
-- `ServerMessageHandler` remains a dedicated message dispatcher. Swing updates and modal dialogs remain on the EDT.
+- `client/`: Chương trình giao diện dành cho người chơi.
+- `server/`: Chương trình xử lý nghiệp vụ và điều phối game.
+- `database/`: Các file SQL phục vụ khởi tạo cấu trúc và dữ liệu database.
+- `docs/`: Tài liệu mô tả kiến trúc và giao thức trao đổi dữ liệu.
+- `run-client.bat`: Hỗ trợ khởi chạy Client.
+- `run-server.bat`: Hỗ trợ khởi chạy Server.
 
-## Compatibility rules
+Client và Server là hai project Maven riêng biệt, cùng sử dụng Java 17. Mỗi project có cấu hình build và các thư viện phụ thuộc riêng.
 
-The project keeps the existing board size (36), pair count (18), symbol count (32), purchase timeout (30 seconds), missed-pair timeout (1.5 seconds), and private reveal timeout (2 seconds). The Server enforces a 10-coin reserve for 1v1 participation and purchases, settles match rewards/penalties transactionally, and validates Solo progression and timing. No reconnect behavior is introduced.
+## 3. Kiến trúc Client
 
-## Verification limitation
+Client được xây dựng bằng Java Swing, đảm nhiệm việc hiển thị giao diện và tiếp nhận thao tác của người chơi.
 
-The source was syntax/type-smoke-checked with `javac` against minimal local API stubs because Maven and the real dependency artifacts were unavailable in the editing environment. This is not a substitute for `mvn clean package` with the real dependencies or an end-to-end two-client/MySQL game test. Run those checks on a machine with Maven, JDK 17 and MySQL before deployment.
+Các thành phần chính gồm:
+
+- **View:** Xây dựng các màn hình và component giao diện như đăng nhập, đăng ký, lobby, phòng chơi, Solo, PvP, bộ sưu tập, lịch sử và bảng xếp hạng.
+- **Controller:** Tiếp nhận thao tác từ giao diện và điều phối các yêu cầu tương ứng.
+- **Network:** Quản lý kết nối TCP đến Server, gửi yêu cầu và nhận thông điệp phản hồi.
+- **Session:** Lưu trạng thái phiên người chơi, bao gồm thông tin tài khoản và phòng chơi.
+- **ServerMessageHandler:** Phân loại và xử lý các thông điệp nhận được từ Server, sau đó cập nhật giao diện tương ứng.
+- **UiTheme:** Quản lý màu sắc và các biểu tượng được sử dụng chung trong giao diện.
+
+Các cập nhật giao diện Swing và việc hiển thị hộp thoại được thực hiện trên Event Dispatch Thread (EDT).
+
+## 4. Kiến trúc Server
+
+Server chịu trách nhiệm xử lý các yêu cầu từ Client, quản lý trạng thái người chơi và thực hiện logic của game.
+
+Các thành phần chính gồm:
+
+- **MainServer:** Điểm khởi chạy Server và thiết lập các thành phần cần thiết để hệ thống hoạt động.
+- **Network:** Tiếp nhận kết nối TCP, quản lý phiên Client và chuyển thông điệp đến bộ xử lý tương ứng.
+- **Service:** Xử lý nghiệp vụ của game, bao gồm tài khoản, phòng chơi, PvP, Solo, thẻ và lịch sử.
+- **Repository:** Thực hiện các truy vấn database để lấy hoặc cập nhật dữ liệu.
+- **Model:** Biểu diễn các đối tượng trong hệ thống như người chơi, phòng, trận đấu, thẻ và kết quả game.
+- **Registry:** Lưu thông tin người chơi đang trực tuyến và các phòng hiện có trong bộ nhớ.
+- **DatabaseConfig:** Cung cấp kết nối JDBC để các Repository truy cập MySQL.
+
+Server là nơi kiểm tra và xử lý logic game. Client gửi yêu cầu và hiển thị kết quả nhận được, không tự quyết định các kết quả nghiệp vụ quan trọng của trận đấu.
+
+## 5. Quản lý trận đấu
+
+Hệ thống hỗ trợ hai chế độ chơi chính là Solo và PvP.
+
+### 5.1. Solo
+
+Ở chế độ Solo, người chơi thực hiện các màn chơi theo tiến trình. Server kiểm tra dữ liệu và điều kiện hoàn thành, sau đó xử lý kết quả, phần thưởng và lưu thông tin cần thiết.
+
+`SoloService` đảm nhiệm phần nghiệp vụ Solo, bao gồm kiểm tra tiến trình, ghi nhận kết quả và cung cấp dữ liệu bảng xếp hạng.
+
+### 5.2. PvP
+
+Ở chế độ PvP, người chơi tham gia phòng và thi đấu với người chơi khác.
+
+`RoomService` xử lý việc tạo phòng, tìm phòng và tham gia phòng. `Room` quản lý trạng thái phòng và đồng bộ các thao tác trong trận. Trạng thái bàn chơi và lượt hiện tại được lưu trong `Match`.
+
+`GameService` tiếp nhận các lệnh PvP và điều phối quá trình xử lý trận đấu. Các thao tác thay đổi trạng thái trận phải được đồng bộ trên `Room` tương ứng để tránh xảy ra xung đột giữa các yêu cầu.
+
+Sau khi trận đấu kết thúc, kết quả được xử lý và lưu vào database.
+
+## 6. Database
+
+Hệ thống sử dụng MySQL để lưu trữ dữ liệu cần duy trì giữa các lần chạy.
+
+Các dữ liệu chính bao gồm:
+
+- Thông tin tài khoản người chơi.
+- Số dư coin và điểm xếp hạng.
+- Dữ liệu thẻ.
+- Kết quả trận đấu.
+- Lịch sử chơi và dữ liệu phục vụ bảng xếp hạng.
+
+Các thao tác truy cập database được thực hiện thông qua Repository. `DatabaseConfig` quản lý việc tạo kết nối JDBC, giúp các lớp nghiệp vụ không phải tự thiết lập kết nối database.
+
+Thông tin kết nối database được cấu hình riêng trong file `db.properties` trên máy chạy Server.
+
+## 7. Giao tiếp Client–Server
+
+Client và Server giao tiếp thông qua TCP. Dữ liệu được truyền dưới dạng JSON, mỗi thông điệp kết thúc bằng ký tự xuống dòng.
+
+Client gửi các yêu cầu như đăng nhập, tạo phòng, tham gia phòng hoặc thực hiện hành động trong game. Server tiếp nhận yêu cầu, kiểm tra và xử lý nghiệp vụ, sau đó gửi thông điệp phản hồi về Client.
+
+Chi tiết cấu trúc thông điệp, các loại yêu cầu và phản hồi được mô tả trong `docs/PROTOCOL.md`.
+
+## 8. Khởi chạy hệ thống
+
+Để chạy game, cần chuẩn bị môi trường Java 17, Maven và MySQL.
+
+Trước tiên, database cần được khởi tạo theo các file SQL trong thư mục `database/`. Server cần được cấu hình thông tin kết nối MySQL trong file `db.properties`.
+
+Sau khi cấu hình hoàn tất, khởi chạy Server trước. Khi Server hoạt động, người chơi có thể mở Client để kết nối và sử dụng các chức năng của game.
+
+Client và Server có thể được build và chạy độc lập thông qua cấu hình Maven tương ứng hoặc các file hỗ trợ khởi chạy trong project.
