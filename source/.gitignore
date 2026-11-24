@@ -9,3 +9,6 @@
 # Local database configuration and logs
 server/src/main/resources/db.properties
 *.log
+
+db.properties
+.github/
