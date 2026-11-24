@@ -853,7 +853,7 @@ public class MainFrame {
         }
 
         String host = System.getProperty("cardgame.host",
-                System.getenv().getOrDefault("CARDGAME_HOST", "10.199.133.77"));
+                System.getenv().getOrDefault("CARDGAME_HOST", "127.0.0.1"));
 
         int port = Integer.getInteger("cardgame.port",
                 Integer.parseInt(System.getenv().getOrDefault("CARDGAME_PORT", "5000")));
