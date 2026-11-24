@@ -1,140 +1,80 @@
-# BÀI TẬP LỚN: LẬP TRÌNH MẠNG  
+# CardGame
 
-## [Tên dự án của nhóm]
+Java 17 card-matching game with separate Maven projects for Client and Server. The Client is Swing/FlatLaf; the Server is authoritative for PvP and uses TCP sockets with newline-delimited JSON. Both Client and Server use Jackson 3.3.0 for JSON; only the Server accesses MySQL.
 
-> 📘 *Mẫu README này là khung hướng dẫn. Sinh viên chỉ cần điền thông tin của nhóm và nội dung dự án theo từng mục.*
+## Requirements
 
----
+- JDK 17+
+- Maven 3.8+
+- MySQL 8+
 
-## 🧑‍💻 THÔNG TIN NHÓM
+## Database setup
 
-| STT | Họ và Tên | MSSV | Email | Đóng góp |
-|-----|-----------|------|-------|----------|
-| 1 | Nguyễn Văn A | 20IT001 | a@example.com | ... |
-| 2 | Trần Thị B | 20IT002 | b@example.com | ... |
-| 3 | Lê Văn C | 20IT003 | c@example.com | ... |
+1. Run `database/schema.sql` in MySQL to create/update `card_memory_game` and its tables. The script widens `users.password_hash` for salted PBKDF2 hashes; existing SHA-256 passwords are upgraded automatically at the next successful login.
+2. Copy `server/src/main/resources/db.properties.example` to `server/src/main/resources/db.properties`.
+3. Set your local MySQL username/password in `db.properties`. This local file is ignored by Git and is not included in the source ZIP.
 
-**Tên nhóm:** Nhóm 01 – Lập trình mạng  
-**Chủ đề đã đăng ký:** (…)
+Alternatively configure `CARDGAME_DB_URL`, `CARDGAME_DB_USER`, and `CARDGAME_DB_PASSWORD` environment variables. Server port defaults to `5000` and can be set with `server.port` in the properties file.
 
----
+## Run from source
 
-## 🧠 MÔ TẢ HỆ THỐNG
+Start Server:
 
-> Mô tả tổng quan hệ thống mà nhóm triển khai.
-
-Ví dụ:
-> Hệ thống bao gồm **server** xử lý yêu cầu và **client** gửi yêu cầu đến server qua giao thức HTTP.  
-> Server cung cấp API cho phép tính toán đơn giản hoặc truyền dữ liệu.  
-> Client có thể là chương trình CLI, web hoặc ứng dụng desktop.
-
-**Cấu trúc logic tổng quát:**
-```
-client  <-->  server  <-->  (database / service nếu có)
-```
-
-**Sơ đồ hệ thống:**
-
-![System Diagram](./statics/diagram.png)
-
----
-
-## ⚙️ CÔNG NGHỆ SỬ DỤNG
-
-> Liệt kê công nghệ, framework, thư viện chính mà nhóm sử dụng.
-
-| Thành phần | Công nghệ | Ghi chú |
-|------------|-----------|---------|
-| Server | Python 3.11 + Flask | REST API |
-| Client | Node.js 20 + Axios | Giao tiếp HTTP |
-| Database | SQLite | Lưu trữ dữ liệu tạm thời |
-| Triển khai | Docker | (nếu có) |
-
----
-
-## 🚀 HƯỚNG DẪN CHẠY DỰ ÁN
-
-### 1. Clone repository
 ```bash
-git clone <repository-url>
-cd assignment-network-project
+cd server
+mvn compile exec:java -Dexec.mainClass=com.cardgame.server.MainServer
 ```
 
-### 2. Chạy server
+Start Client in another terminal:
+
 ```bash
-cd source/server
-# Các lệnh để khởi động server
+cd client
+mvn compile exec:java -Dexec.mainClass=com.cardgame.client.MainClient
 ```
 
-### 3. Chạy client
+On Windows, `run-server.bat` and `run-client.bat` at the project root perform these steps. Client mặc định kết nối `127.0.0.1:5000`; khi chạy qua LAN/ZeroTier, đặt biến môi trường `CARDGAME_HOST` và tùy chọn `CARDGAME_PORT` trước khi chạy `run-client.bat`.
+
+## Build a standalone Client JAR
+
 ```bash
-cd source/client
-# Các lệnh để khởi động client
+cd client
+mvn clean package
+java -jar target/cardgame-client-1.0.0.jar
 ```
 
-### 4. Kiểm thử nhanh
+The Shade plugin packages runtime dependencies into the Client JAR. Copy the resulting JAR to another computer with Java 17+.
+
+## Connect a Client on another computer
+
+On the Server computer, allow inbound TCP port `5000` through the firewall and start the Server. On the other computer, use the Server computer's LAN IP (the Client defaults to `127.0.0.1` for local play):
+
 ```bash
-# Các lệnh test
+java -Dcardgame.host=192.168.1.10 -Dcardgame.port=5000 -jar target/cardgame-client-1.0.0.jar
 ```
 
----
+Replace `192.168.1.10` with the actual LAN or ZeroTier IP of the Server computer. Both computers must be able to reach each other over the network. The connection attempt runs in the background and times out after 5 seconds.
 
-## 🔗 GIAO TIẾP (GIAO THỨC SỬ DỤNG)
+## Project structure
 
-| Endpoint | Protocol | Method | Input | Output |
-|----------|----------|--------|-------|--------|
-| `/health` | HTTP/1.1 | GET | — | `{"status": "ok"}` |
-| `/compute` | HTTP/1.1 | POST | `{"task":"sum","payload":[1,2,3]}` | `{"result":6}` |
-
----
-
-## 📊 KẾT QUẢ THỰC NGHIỆM
-
-> Đưa ảnh chụp kết quả hoặc mô tả log chạy thử.
-
-![Demo Result](./statics/result.png)
-
----
-
-## 🧩 CẤU TRÚC DỰ ÁN
-```
-assignment-network-project/
-├── README.md
-├── INSTRUCTION.md
-├── statics/
-│   ├── diagram.png
-│   └── dataset_sample.csv
-└── source/
-    ├── .gitignore
-    ├── client/
-    │   ├── README.md
-    │   └── (client source files...)
-    ├── server/
-    │   ├── README.md
-    │   └── (server source files...)
-    └── (các module khác nếu có)
+```text
+CardGame/
+├── client/src/main/java/com/cardgame/client/
+│   ├── controller/       # Authentication form controller
+│   ├── model/            # Session and room data
+│   ├── network/          # TCP Client
+│   ├── util/             # JSON helpers
+│   └── view/             # Swing screens, dialogs, UI theme and widgets
+├── server/src/main/java/com/cardgame/server/
+│   ├── config/           # JDBC configuration
+│   ├── model/            # Card, Room and Match board state
+│   ├── network/          # TCP sessions, dispatcher and online registry
+│   ├── repository/       # MySQL access
+│   ├── service/          # Auth, room, game, Solo, history and card services
+│   └── util/             # JSON helpers
+├── database/schema.sql
+├── docs/PROTOCOL.md
+├── run-client.bat
+└── run-server.bat
 ```
 
----
-
-## 🧩 HƯỚNG PHÁT TRIỂN THÊM
-
-> Nêu ý tưởng mở rộng hoặc cải tiến hệ thống.
-
-- [ ] Cải thiện giao diện người dùng
-- [ ] Thêm tính năng xác thực và phân quyền
-- [ ] Tối ưu hóa hiệu suất
-- [ ] Triển khai trên cloud
-
----
-
-## 📝 GHI CHÚ
-
-- Repo tuân thủ đúng cấu trúc đã hướng dẫn trong `INSTRUCTION.md`.
-- Đảm bảo test kỹ trước khi submit.
-
----
-
-## 📚 TÀI LIỆU THAM KHẢO
-
-> (Nếu có) Liệt kê các tài liệu, API docs, hoặc nguồn tham khảo đã sử dụng.
+Client and Server remain independent Maven projects. Their JSON contract is documented in `docs/PROTOCOL.md`; no shared Maven module is required.
