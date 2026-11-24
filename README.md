@@ -1,80 +1,108 @@
-# CardGame
-
-Java 17 card-matching game with separate Maven projects for Client and Server. The Client is Swing/FlatLaf; the Server is authoritative for PvP and uses TCP sockets with newline-delimited JSON. Both Client and Server use Jackson 3.3.0 for JSON; only the Server accesses MySQL.
-
-## Requirements
-
-- JDK 17+
-- Maven 3.8+
-- MySQL 8+
-
-## Database setup
-
-1. Run `database/schema.sql` in MySQL to create/update `card_memory_game` and its tables. The script widens `users.password_hash` for salted PBKDF2 hashes; existing SHA-256 passwords are upgraded automatically at the next successful login.
-2. Copy `server/src/main/resources/db.properties.example` to `server/src/main/resources/db.properties`.
-3. Set your local MySQL username/password in `db.properties`. This local file is ignored by Git and is not included in the source ZIP.
-
-Alternatively configure `CARDGAME_DB_URL`, `CARDGAME_DB_USER`, and `CARDGAME_DB_PASSWORD` environment variables. Server port defaults to `5000` and can be set with `server.port` in the properties file.
-
-## Run from source
-
-Start Server:
-
-```bash
-cd server
-mvn compile exec:java -Dexec.mainClass=com.cardgame.server.MainServer
-```
-
-Start Client in another terminal:
-
-```bash
-cd client
-mvn compile exec:java -Dexec.mainClass=com.cardgame.client.MainClient
-```
-
-On Windows, `run-server.bat` and `run-client.bat` at the project root perform these steps. Client mặc định kết nối `127.0.0.1:5000`; khi chạy qua LAN/ZeroTier, đặt biến môi trường `CARDGAME_HOST` và tùy chọn `CARDGAME_PORT` trước khi chạy `run-client.bat`.
-
-## Build a standalone Client JAR
-
-```bash
-cd client
-mvn clean package
-java -jar target/cardgame-client-1.0.0.jar
-```
-
-The Shade plugin packages runtime dependencies into the Client JAR. Copy the resulting JAR to another computer with Java 17+.
-
-## Connect a Client on another computer
-
-On the Server computer, allow inbound TCP port `5000` through the firewall and start the Server. On the other computer, use the Server computer's LAN IP (the Client defaults to `127.0.0.1` for local play):
-
-```bash
-java -Dcardgame.host=192.168.1.10 -Dcardgame.port=5000 -jar target/cardgame-client-1.0.0.jar
-```
-
-Replace `192.168.1.10` with the actual LAN or ZeroTier IP of the Server computer. Both computers must be able to reach each other over the network. The connection attempt runs in the background and times out after 5 seconds.
-
-## Project structure
+## 3. Cấu trúc dự án
 
 ```text
-CardGame/
-├── client/src/main/java/com/cardgame/client/
-│   ├── controller/       # Authentication form controller
-│   ├── model/            # Session and room data
-│   ├── network/          # TCP Client
-│   ├── util/             # JSON helpers
-│   └── view/             # Swing screens, dialogs, UI theme and widgets
-├── server/src/main/java/com/cardgame/server/
-│   ├── config/           # JDBC configuration
-│   ├── model/            # Card, Room and Match board state
-│   ├── network/          # TCP sessions, dispatcher and online registry
-│   ├── repository/       # MySQL access
-│   ├── service/          # Auth, room, game, Solo, history and card services
-│   └── util/             # JSON helpers
-├── database/schema.sql
-├── docs/PROTOCOL.md
+Memory-Lane_BTL-LTM-Nhom-6-N09/
+├── .gitignore
+├── README.md
 ├── run-client.bat
-└── run-server.bat
+├── run-server.bat
+│
+├── client/
+│   ├── pom.xml
+│   └── src/main/java/com/cardgame/client/
+│       ├── MainClient.java
+│       ├── controller/
+│       │   └── LoginController.java
+│       ├── model/
+│       │   ├── RoomInfo.java
+│       │   └── Session.java
+│       ├── network/
+│       │   └── NetworkClient.java
+│       ├── util/
+│       │   └── Json.java
+│       └── view/
+│           ├── DataPagePanel.java
+│           ├── LobbyPanel.java
+│           ├── LoginPanel.java
+│           ├── MainFrame.java
+│           ├── PvPGamePanel.java
+│           ├── RegisterPanel.java
+│           ├── ServerMessageHandler.java
+│           ├── SoloGamePanel.java
+│           ├── UiTheme.java
+│           ├── WaitingPanel.java
+│           ├── components/
+│           │   ├── CardTile.java
+│           │   ├── IconPainter.java
+│           │   ├── RoundedPanel.java
+│           │   └── VectorIcon.java
+│           └── dialogs/
+│               ├── CardPurchaseDialog.java
+│               ├── CardUseDialog.java
+│               ├── ChangePasswordDialog.java
+│               ├── MatchCancelledDialog.java
+│               ├── MatchResultDialog.java
+│               ├── OrderChoiceDialog.java
+│               ├── RpsDialog.java
+│               └── SoloResultDialog.java
+│
+├── database/
+│   └── schema.sql
+│
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── PROTOCOL.md
+│
+└── server/
+    ├── pom.xml
+    └── src/main/
+        ├── java/com/cardgame/server/
+        │   ├── MainServer.java
+        │   ├── config/
+        │   │   └── DatabaseConfig.java
+        │   ├── model/
+        │   │   ├── Card.java
+        │   │   ├── GameResult.java
+        │   │   ├── Match.java
+        │   │   ├── Room.java
+        │   │   └── User.java
+        │   ├── network/
+        │   │   ├── ClientHandler.java
+        │   │   ├── MessageDispatcher.java
+        │   │   ├── OnlineUsers.java
+        │   │   └── TcpServer.java
+        │   ├── repository/
+        │   │   ├── CardRepository.java
+        │   │   ├── GameRepository.java
+        │   │   ├── SoloRecordRepository.java
+        │   │   └── UserRepository.java
+        │   ├── service/
+        │   │   ├── AuthService.java
+        │   │   ├── CardService.java
+        │   │   ├── GameService.java
+        │   │   ├── HistoryService.java
+        │   │   ├── RoomRegistry.java
+        │   │   ├── RoomService.java
+        │   │   └── SoloService.java
+        │   └── util/
+        │       ├── Json.java
+        │       └── PasswordHasher.java
+        └── resources/
+            └── db.properties.example
 ```
 
-Client and Server remain independent Maven projects. Their JSON contract is documented in `docs/PROTOCOL.md`; no shared Maven module is required.
+### Vai trò các thư mục
+
+| Thành phần | Vai trò |
+|---|---|
+| `client` | Giao diện người chơi, xử lý thao tác và giao tiếp với Server |
+| `server` | Xử lý tài khoản, phòng chơi, trận đấu, thẻ và dữ liệu |
+| `database` | Chứa script khởi tạo cơ sở dữ liệu MySQL |
+| `docs` | Tài liệu kiến trúc và đặc tả giao thức |
+| `run-client.bat` | Script khởi chạy Client trên Windows |
+| `run-server.bat` | Script khởi chạy Server trên Windows |
+
+### Tài liệu trong thư mục docs
+
+- `ARCHITECTURE.md`: mô tả kiến trúc tổng thể và cách các thành phần Client, Server, Database phối hợp với nhau.
+- `PROTOCOL.md`: mô tả giao thức JSON dùng để trao đổi message giữa Client và Server.
