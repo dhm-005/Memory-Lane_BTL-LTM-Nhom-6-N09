@@ -1,4 +1,4 @@
-# MEMORY DUEL
+# MEMORY LANE
 
 Memory Duel là game lật thẻ ghi nhớ được phát triển bằng Java. Dự án được xây dựng theo mô hình Client–Server, sử dụng giao diện Java Swing và cơ sở dữ liệu MySQL để lưu trữ thông tin người chơi, thẻ và kết quả chơi.
 

@@ -3,7 +3,6 @@ package com.cardgame.server.network;
 
 import tools.jackson.databind.node.ObjectNode;
 import com.cardgame.server.MainServer;
-import com.cardgame.server.network.OnlineUsers;
 import com.cardgame.server.model.Room;
 import com.cardgame.server.util.Json;
 import java.io.BufferedReader;

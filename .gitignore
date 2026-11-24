@@ -9,3 +9,5 @@
 # Local database configuration and logs
 server/src/main/resources/db.properties
 *.log
+source/server/src/main/resources/application.properties
+source/server/src/main/resources/db.properties

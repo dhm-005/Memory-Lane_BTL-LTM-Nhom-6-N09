@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0server"
+cd /d "%~dp0\source\server"
 if not exist src\main\resources\db.properties (
     if exist src\main\resources\db.properties.example (
         copy src\main\resources\db.properties.example src\main\resources\db.properties >nul

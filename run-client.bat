@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0client"
+cd /d "%~dp0\source\client"
 if "%CARDGAME_HOST%"=="" set CARDGAME_HOST=127.0.0.1
 if "%CARDGAME_PORT%"=="" set CARDGAME_PORT=5000
 echo ========================================================
