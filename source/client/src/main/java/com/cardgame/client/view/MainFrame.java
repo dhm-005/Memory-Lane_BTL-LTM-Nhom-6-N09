@@ -39,6 +39,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Locale;
+import javax.swing.plaf.basic.BasicHTML;
+import javax.swing.text.View;
 public class MainFrame {
     // Shared palette and symbol names are defined in UiTheme.
     static final int PVP_BOARD_SIZE = 36;
@@ -133,21 +135,26 @@ public class MainFrame {
                 }
             }
         });
-        frame.setMinimumSize(new Dimension(950, 720));
-        frame.setSize(1180, 800);
+        // Cỡ cửa sổ mặc định co theo màn hình thực tế (trừ thanh taskbar) và cho phép thu nhỏ.
+        Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        int width = Math.min(1180, (int) (usable.width * 0.94));
+        int height = Math.min(800, (int) (usable.height * 0.94));
+        frame.setMinimumSize(new Dimension(Math.min(640, width), Math.min(480, height)));
+        frame.setSize(width, height);
         frame.setLocationRelativeTo(null);
         layout = new CardLayout();
         root = new JPanel(layout);
         root.setBackground(BG);
+        // Đăng nhập / đăng ký / phòng chờ tự co giãn bên trong; các trang còn lại bọc FitPage để vừa khít cửa sổ.
         root.add(LoginPanel.create(this), "login");
         root.add(RegisterPanel.create(this), "register");
-        root.add(LobbyPanel.create(this), "lobby");
+        root.add(InlineFitPage.wrap(LobbyPanel.create(this)), "lobby");
         root.add(WaitingPanel.create(this), "waiting");
-        root.add(PvPGamePanel.create(this), "game");
-        root.add(SoloGamePanel.create(this), "solo");
-        root.add(dataPage("LỊCH SỬ TRẬN ĐẤU", "Lịch sử những trận đấu gần đây của bạn.", "history"), "history");
-        root.add(dataPage("BẢNG XẾP HẠNG", "Thành tích và điểm số của người chơi.", "leaderboard"), "leaderboard");
-        root.add(dataPage("BỘ SƯU TẬP THẺ", "Thông tin các thẻ chức năng trong game.", "collection"), "collection");
+        root.add(InlineFitPage.wrap(PvPGamePanel.create(this)), "game");
+        root.add(InlineFitPage.wrap(SoloGamePanel.create(this)), "solo");
+        root.add(InlineFitPage.wrap(dataPage("LỊCH SỬ TRẬN ĐẤU", "Lịch sử những trận đấu gần đây của bạn.", "history")), "history");
+        root.add(InlineFitPage.wrap(dataPage("BẢNG XẾP HẠNG", "Thành tích và điểm số của người chơi.", "leaderboard")), "leaderboard");
+        root.add(InlineFitPage.wrap(dataPage("BỘ SƯU TẬP THẺ", "Thông tin các thẻ chức năng trong game.", "collection")), "collection");
         frame.setContentPane(root);
         frame.setVisible(true);
         connect();
@@ -156,9 +163,9 @@ public class MainFrame {
     // COMMON UI
     // =====================================================
     JPanel page() {
-        JPanel p = new JPanel(new BorderLayout(0, 24));
+        JPanel p = new JPanel(new BorderLayout(0, 16));
         p.setBackground(BG);
-        p.setBorder(new EmptyBorder(30, 38, 30, 38));
+        p.setBorder(new EmptyBorder(20, 32, 20, 32));
         return p;
     }
     JPanel vertical() {
@@ -181,13 +188,19 @@ public class MainFrame {
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
     }
+    /** Nhãn tự xuống dòng theo bề rộng khung chứa (width là bề rộng tối đa). */
     JLabel wrappedLabel(String text, int width) {
-        JLabel l = new JLabel(
-        "<html><div style='width:" + width
-        + "px;'>" + text + "</div></html>"
-        );
+        JLabel l = new InlineWrapLabel(text, width);
         l.setForeground(MUTED);
         l.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+    /** Dòng thông báo lỗi màu đỏ hiển thị ngay trên form. */
+    JLabel errorLabel() {
+        JLabel l = new InlineWrapLabel(" ", 1000);
+        l.setForeground(DANGER);
+        l.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         return l;
     }
@@ -258,10 +271,40 @@ public class MainFrame {
         c.setMaximumSize(d);
         c.setAlignmentX(Component.LEFT_ALIGNMENT);
     }
+    /** Component giãn hết bề rộng khung chứa (BoxLayout dọc), chiều cao cố định. */
+    void fillWidth(JComponent c, int height) {
+        c.setPreferredSize(new Dimension(10, height));
+        c.setMinimumSize(new Dimension(0, height));
+        c.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+        c.setAlignmentX(Component.LEFT_ALIGNMENT);
+    }
+    /** Nút dạng liên kết (chữ tím, gạch chân khi rê chuột) như các trang web thông thường. */
+    JButton linkButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        b.setForeground(PURPLE_DARK);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setOpaque(false);
+        b.setMargin(new Insets(0, 4, 0, 4));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                b.setText("<html><u>" + text + "</u></html>");
+            }
+            @Override public void mouseExited(MouseEvent e) {
+                b.setText(text);
+            }
+        });
+        return b;
+    }
     public String currentPage = "login";
     void showPage(String name) {
         currentPage = name;
         layout.show(root, name);
+        if ("login".equals(name)) LoginPanel.focus();
+        else if ("register".equals(name)) RegisterPanel.focus();
     }
     // =====================================================
     // LOGIN / REGISTER
@@ -276,7 +319,7 @@ public class MainFrame {
         field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         field.setForeground(TEXT);
         field.setBackground(Color.WHITE);
-        setFixedWidth(field, 310, 46);
+        fillWidth(field, 46);
         field.setBorder(
         BorderFactory.createCompoundBorder(
         BorderFactory.createLineBorder(BORDER),
@@ -284,7 +327,15 @@ public class MainFrame {
         )
         );
     }
-   
+    // =====================================================
+    // LOBBY
+    // =====================================================
+    // =====================================================
+    // WAITING ROOM
+    // =====================================================
+    // =====================================================
+    // GAME
+    // =====================================================
     // =====================================================
     // SOLO CAMPAIGN
     // =====================================================
@@ -357,6 +408,7 @@ public class MainFrame {
             final int index = i;
             CardTile tile = new CardTile();
             tile.setPreferredSize(new Dimension(70, 76));
+            tile.setMinimumSize(new Dimension(46, 52));
             tile.addActionListener(e -> soloFlip(index));
             soloTiles[i] = tile;
             soloBoard.add(tile);
@@ -458,7 +510,9 @@ public class MainFrame {
         if (soloClock != null) soloClock.stop();
         if (soloResolveTimer != null) soloResolveTimer.stop();
     }
-   
+    // =====================================================
+    // HISTORY
+    // =====================================================
     // =====================================================
     // LEADERBOARD
     // =====================================================
@@ -469,7 +523,9 @@ public class MainFrame {
         pvpLeaderboardTab.setBackground(!showingSoloLeaderboard ? PURPLE_DARK : LAVENDER);
         pvpLeaderboardTab.setForeground(!showingSoloLeaderboard ? Color.WHITE : PURPLE_DARK);
     }
-  
+    // =====================================================
+    // DATA PAGE
+    // =====================================================
     // =====================================================
     // TABLE STYLE
     // =====================================================
@@ -853,7 +909,7 @@ public class MainFrame {
         }
 
         String host = System.getProperty("cardgame.host",
-                System.getenv().getOrDefault("CARDGAME_HOST", "127.0.0.1"));
+                System.getenv().getOrDefault("CARDGAME_HOST", "10.199.133.152"));
 
         int port = Integer.getInteger("cardgame.port",
                 Integer.parseInt(System.getenv().getOrDefault("CARDGAME_PORT", "5000")));
@@ -987,6 +1043,141 @@ public class MainFrame {
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
         dialog.dispose();
+    }
+
+
+
+    // Helpers embedded to preserve the original file count.
+    /**
+     * Bọc một trang để nó luôn "vừa khít" cửa sổ.
+     * Cửa sổ đủ lớn: trang giãn đầy khung. Cửa sổ nhỏ hơn kích thước tối thiểu của nội dung:
+     * hiện thanh cuộn thay vì để chữ đè lên nhau.
+     */
+    private static final class InlineFitPage extends JPanel implements Scrollable {
+        private final JComponent content;
+
+        private InlineFitPage(JComponent content) {
+            super(new BorderLayout());
+            this.content = content;
+            setOpaque(true);
+            setBackground(content.getBackground());
+            add(content, BorderLayout.CENTER);
+        }
+
+        public static JScrollPane wrap(JComponent content) {
+            InlineFitPage page = new InlineFitPage(content);
+            JScrollPane scroll = new JScrollPane(page,
+                    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            scroll.setBorder(null);
+            scroll.getViewport().setBackground(content.getBackground());
+            scroll.getVerticalScrollBar().setUnitIncrement(18);
+            scroll.getHorizontalScrollBar().setUnitIncrement(18);
+            return scroll;
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return content.getMinimumSize();
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 18;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return orientation == SwingConstants.VERTICAL ? visibleRect.height - 24 : visibleRect.width - 24;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return !(getParent() instanceof JViewport vp) || vp.getWidth() >= content.getMinimumSize().width;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return !(getParent() instanceof JViewport vp) || vp.getHeight() >= content.getMinimumSize().height;
+        }
+    }
+
+    /**
+     * JLabel tự xuống dòng theo bề rộng thật của khung chứa.
+     * Chiều cao ưu tiên được tính lại theo bề rộng hiện tại nên chữ không bao giờ bị cắt hay đè lên thành phần khác.
+     */
+    private static class InlineWrapLabel extends JLabel {
+        private final int maxWidth;
+        private final int align;
+        private int knownWidth = -1;
+
+        public InlineWrapLabel(String text, int maxWidth) {
+            this(text, maxWidth, SwingConstants.LEFT);
+        }
+
+        public InlineWrapLabel(String text, int maxWidth, int alignment) {
+            super((String) null, alignment);
+            this.maxWidth = maxWidth;
+            this.align = alignment;
+            setText(text);
+        }
+
+        private String toHtml(String text) {
+            if (text == null) return null;
+            if (text.regionMatches(true, 0, "<html>", 0, 6)) return text;
+            String a = align == SwingConstants.CENTER ? "center" : align == SwingConstants.RIGHT ? "right" : "left";
+            return "<html><div style='text-align:" + a + "'>" + text + "</div></html>";
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(toHtml(text));
+        }
+
+        private int availableWidth() {
+            Container p = getParent();
+            if (p == null || p.getWidth() <= 0) return maxWidth;
+            Insets pi = p.getInsets();
+            int w = p.getWidth() - pi.left - pi.right;
+            return Math.min(maxWidth, Math.max(40, w));
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            View view = (View) getClientProperty(BasicHTML.propertyKey);
+            if (view == null) return super.getPreferredSize();
+            Insets in = getInsets();
+            int avail = Math.max(40, availableWidth() - in.left - in.right);
+            view.setSize(avail, 0);
+            int h = (int) Math.ceil(view.getPreferredSpan(View.Y_AXIS)) + in.top + in.bottom;
+            return new Dimension(avail + in.left + in.right, Math.max(h, getFontMetrics(getFont()).getHeight()));
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(0, getPreferredSize().height);
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            Insets in = getInsets();
+            return new Dimension(maxWidth + in.left + in.right, getPreferredSize().height);
+        }
+
+        @Override
+        public void setBounds(int x, int y, int w, int h) {
+            boolean widthChanged = w != getWidth();
+            super.setBounds(x, y, w, h);
+            if (widthChanged && w != knownWidth) {
+                knownWidth = w;
+                SwingUtilities.invokeLater(this::revalidate);
+            }
+        }
     }
 
 }
