@@ -24,6 +24,12 @@ final class ServerMessageHandler {
         String type = Json.str(m, "type");
         switch (type) {
             case "SESSION_REPLACED" -> owner.handleSessionReplaced(Json.str(m, "message"));
+            case "LOGIN_FAILED" -> {
+                // Lỗi xác thực có loại phản hồi riêng để luôn hiện rõ trên form đăng nhập.
+                if (owner.loginButton != null) owner.loginButton.setEnabled(true);
+                if (!"login".equals(owner.currentPage)) owner.showPage("login");
+                LoginPanel.showError(Json.str(m, "message"));
+            }
             case "ERROR" -> {
                 if (owner.soloAwaitingServer) {
                     owner.soloAwaitingServer = false;
@@ -31,7 +37,10 @@ final class ServerMessageHandler {
                 }
                 if (owner.loginButton != null) owner.loginButton.setEnabled(true);
                 if (owner.registerButton != null) owner.registerButton.setEnabled(true);
-                owner.popup(Json.str(m, "message"));
+                // Lỗi đăng nhập/đăng ký hiện ngay trên form (màu đỏ); các màn khác vẫn dùng hộp thoại
+                if ("login".equals(owner.currentPage)) LoginPanel.showError(Json.str(m, "message"));
+                else if ("register".equals(owner.currentPage)) RegisterPanel.showError(Json.str(m, "message"));
+                else owner.popup(Json.str(m, "message"));
             }
             case "PASSWORD_CHANGED" -> owner.popup("Đổi mật khẩu thành công.");
             case "SOLO_BEST" -> {
@@ -53,6 +62,8 @@ final class ServerMessageHandler {
                 owner.session.coins = Json.integer(m,"coins",50);
                 owner.session.rankingPoints = Json.integer(m,"points",0);
                 if (owner.coinLabel != null) owner.coinLabel.setText("Xu: " + owner.session.coins);
+                LoginPanel.clearFields();
+                RegisterPanel.clearFields();
                 owner.showPage("lobby");
                 owner.send("LIST_ROOMS");
             }
@@ -96,7 +107,7 @@ final class ServerMessageHandler {
                 String p1Html = escapeHtml(p1);
                 String p2Html = escapeHtml(p2);
                 owner.waitingPlayersLabel.setText(
-                    "<html><div style='text-align:center; white-space:nowrap;'>"
+                    "<html><div style='text-align:center;'>"
                     + "<span style='font-family:Segoe UI;'>"
                     + (p1Html.isBlank() ? "Đang chờ" : p1Html)
                     + "</span>"
