@@ -19,7 +19,7 @@ final class DataPagePanel {
         labels.add(owner.title(heading, 27));
         labels.add(Box.createVerticalStrut(5));
         labels.add(owner.wrappedLabel(description, 500));
-        top.add(labels, BorderLayout.WEST);
+        top.add(labels, BorderLayout.CENTER);
         JButton back = owner.iconButton("QUAY LẠI SẢNH", "back");
         back.addActionListener(e -> owner.showPage("lobby"));
         top.add(back, BorderLayout.EAST);
@@ -52,6 +52,7 @@ final class DataPagePanel {
         owner.styleTable(table);
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER));
+        scroll.setMinimumSize(new Dimension(300, 160));
         scroll.setHorizontalScrollBarPolicy(
         ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
         );
