@@ -54,7 +54,7 @@ public final class PvPGamePanel {
             final int index=i;
             CardTile b=new CardTile();
             b.setPreferredSize(new Dimension(88,96));
-            b.setMinimumSize(new Dimension(58,62));
+            b.setMinimumSize(new Dimension(44,48));
             b.addActionListener(e->{
                 if(owner.selectingCardTarget){
                     if(owner.matched[index]||owner.revealed[index]||owner.locked[index]){
@@ -85,7 +85,8 @@ public final class PvPGamePanel {
         boardShell.add(board,BorderLayout.CENTER);
         boardShell.add(bottom,BorderLayout.SOUTH);
         JPanel side=owner.panel(new Color(250,247,255));
-        side.setPreferredSize(new Dimension(245,500));
+        side.setPreferredSize(new Dimension(245,400));
+        side.setMinimumSize(new Dimension(200,300));
         side.setLayout(new BorderLayout(0,10));
         JLabel cardHeading=owner.title("THẺ ĐÃ CHỌN",16);
         side.add(cardHeading,BorderLayout.NORTH);
@@ -115,6 +116,7 @@ public final class PvPGamePanel {
         logPanel.add(owner.eyebrow("NHẬT KÝ TRẬN ĐẤU"),BorderLayout.NORTH);
         JScrollPane logScroll = new JScrollPane(logArea);
         logScroll.setPreferredSize(new Dimension(230, 150));
+        logScroll.setMinimumSize(new Dimension(150, 90));
         logPanel.add(logScroll,BorderLayout.CENTER);
         JPanel sideBottom=new JPanel(new BorderLayout(0,8));
         sideBottom.setOpaque(false);
