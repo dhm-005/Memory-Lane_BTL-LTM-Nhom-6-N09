@@ -26,8 +26,9 @@ public final class LobbyPanel {
         brand.add(owner.title("MEMORY DUEL", 32));
         brand.add(owner.subtitle("Sẵn sàng cho một trận đấu trí vui nhộn?"));
 
+        // WrapLayout: các nút tự xuống hàng khi cửa sổ hẹp, không đè lên nhau
         JPanel actions = new JPanel(
-                new FlowLayout(FlowLayout.RIGHT, 8, 4)
+                new InlineWrapLayout(FlowLayout.RIGHT, 8, 4)
         );
         actions.setOpaque(false);
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -52,6 +53,15 @@ public final class LobbyPanel {
 
         top.add(brand);
         top.add(actions);
+        actions.addComponentListener(new ComponentAdapter() {
+            private int lastWidth = -1;
+            @Override public void componentResized(ComponentEvent e) {
+                if (actions.getWidth() != lastWidth) {
+                    lastWidth = actions.getWidth();
+                    actions.revalidate();
+                }
+            }
+        });
 
         p.add(top, BorderLayout.NORTH);
         // WELCOME
@@ -66,13 +76,19 @@ public final class LobbyPanel {
         + "chơi để bắt đầu trận đấu.",
         500
         ));
-        welcome.add(welcomeText, BorderLayout.WEST);
+        welcome.add(welcomeText, BorderLayout.CENTER);
         JLabel decoration = new JLabel(
         new VectorIcon("flower-star", 78)
         );
         welcome.add(decoration, BorderLayout.EAST);
         // CENTER
-        JPanel center = new JPanel(new GridLayout(1, 2, 20, 0));
+        // Bề rộng tối thiểu nhỏ để trang có thể co lại và tự xếp chồng hai khung khi cửa sổ hẹp
+        JPanel center = new JPanel(new GridLayout(1, 2, 20, 0)) {
+            @Override public Dimension getMinimumSize() {
+                Dimension d = super.getMinimumSize();
+                return new Dimension(Math.min(d.width, 280), d.height);
+            }
+        };
         center.setOpaque(false);
         // CREATE ROOM
         JPanel create = owner.panel(LAVENDER);
@@ -97,7 +113,7 @@ public final class LobbyPanel {
         JPanel join = owner.panel(WHITE);
         JPanel joinHeader = new JPanel(new BorderLayout());
         joinHeader.setOpaque(false);
-        joinHeader.add(owner.title("Phòng đang chờ", 21), BorderLayout.WEST);
+        joinHeader.add(owner.title("Phòng đang chờ", 21), BorderLayout.CENTER);
         JButton refresh = owner.iconButton("LÀM MỚI", "refresh");
         joinHeader.add(refresh, BorderLayout.EAST);
         owner.roomModel.clear();
@@ -135,13 +151,26 @@ public final class LobbyPanel {
         );
         JScrollPane scroll = new JScrollPane(owner.roomList);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER));
+        scroll.setMinimumSize(new Dimension(200, 120));
         JButton joinBtn = owner.primaryButton("THAM GIA PHÒNG");
         join.add(joinHeader, BorderLayout.NORTH);
         join.add(scroll, BorderLayout.CENTER);
         join.add(joinBtn, BorderLayout.SOUTH);
         center.add(create);
         center.add(join);
-        JPanel middle = new JPanel(new BorderLayout(0, 20));
+        // Cửa sổ hẹp: xếp hai khung theo chiều dọc thay vì ép sát nhau
+        center.addComponentListener(new ComponentAdapter() {
+            private boolean stacked = false;
+            @Override public void componentResized(ComponentEvent e) {
+                boolean shouldStack = center.getWidth() < 760;
+                if (shouldStack != stacked) {
+                    stacked = shouldStack;
+                    center.setLayout(shouldStack ? new GridLayout(2, 1, 0, 16) : new GridLayout(1, 2, 20, 0));
+                    center.revalidate();
+                }
+            }
+        });
+        JPanel middle = new JPanel(new BorderLayout(0, 16));
         middle.setOpaque(false);
         middle.add(welcome, BorderLayout.NORTH);
         middle.add(center, BorderLayout.CENTER);
@@ -172,6 +201,8 @@ public final class LobbyPanel {
         changePassword.addActionListener(e -> owner.showChangePasswordDialog());
         logout.addActionListener(e -> {
             owner.send("LOGOUT");
+            LoginPanel.clearFields();
+            RegisterPanel.clearFields();
             owner.session.loggedIn = false;
             owner.session.username = "";
             owner.showPage("login");
@@ -179,4 +210,77 @@ public final class LobbyPanel {
         );
         return p;
     }
+
+
+    // Helpers embedded to preserve the original file count.
+    /** FlowLayout tự xuống hàng khi hết chỗ và báo đúng chiều cao cho khung chứa. */
+    private static class InlineWrapLayout extends FlowLayout {
+        public InlineWrapLayout(int align, int hgap, int vgap) {
+            super(align, hgap, vgap);
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(Container target) {
+            return layoutSize(target, true);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(Container target) {
+            // Bề rộng tối thiểu chỉ là thành phần rộng nhất (không ép cả hàng nằm ngang),
+            // chiều cao tối thiểu tính theo số hàng sau khi xuống dòng.
+            Dimension min = layoutSize(target, false);
+            int widest = 0;
+            for (int i = 0; i < target.getComponentCount(); i++) {
+                Component m = target.getComponent(i);
+                if (m.isVisible()) widest = Math.max(widest, m.getMinimumSize().width);
+            }
+            Insets in = target.getInsets();
+            min.width = widest + in.left + in.right + getHgap() * 2;
+            return min;
+        }
+
+        private Dimension layoutSize(Container target, boolean preferred) {
+            synchronized (target.getTreeLock()) {
+                Container c = target;
+                while (c.getSize().width == 0 && c.getParent() != null) c = c.getParent();
+                int targetWidth = c.getSize().width;
+                if (targetWidth == 0) targetWidth = Integer.MAX_VALUE;
+
+                int hgap = getHgap(), vgap = getVgap();
+                Insets insets = target.getInsets();
+                int horizontal = insets.left + insets.right + hgap * 2;
+                int maxWidth = targetWidth - horizontal;
+
+                Dimension dim = new Dimension(0, 0);
+                int rowWidth = 0, rowHeight = 0;
+                for (int i = 0; i < target.getComponentCount(); i++) {
+                    Component m = target.getComponent(i);
+                    if (!m.isVisible()) continue;
+                    Dimension d = preferred ? m.getPreferredSize() : m.getMinimumSize();
+                    if (rowWidth + d.width > maxWidth && rowWidth > 0) {
+                        addRow(dim, rowWidth, rowHeight);
+                        rowWidth = 0;
+                        rowHeight = 0;
+                    }
+                    if (rowWidth != 0) rowWidth += hgap;
+                    rowWidth += d.width;
+                    rowHeight = Math.max(rowHeight, d.height);
+                }
+                addRow(dim, rowWidth, rowHeight);
+                dim.width += horizontal;
+                dim.height += insets.top + insets.bottom + vgap * 2;
+                if (SwingUtilities.getAncestorOfClass(JScrollPane.class, target) != null && target.isValid()) {
+                    dim.width -= hgap + 1;
+                }
+                return dim;
+            }
+        }
+
+        private void addRow(Dimension dim, int rowWidth, int rowHeight) {
+            dim.width = Math.max(dim.width, rowWidth);
+            if (dim.height > 0) dim.height += getVgap();
+            dim.height += rowHeight;
+        }
+    }
+
 }
